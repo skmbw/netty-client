@@ -68,7 +68,7 @@ public class Client {
 	}
 	
 	public void bootstrap(EventLoopGroup eventLoopGroup) throws InterruptedException {
-		Bootstrap bootstrap = new Bootstrap();
+		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(eventLoopGroup)
 			.channel(NioSocketChannel.class)
 			.option(ChannelOption.TCP_NODELAY, true)
@@ -93,6 +93,7 @@ public class Client {
 					pipeline.addLast("decoder", new StringDecoder(Char.UTF8));
 					
 					pipeline.addLast("heartBeatHandler", new HeartBeatHandler());// 进行心跳检测，如果是心跳消息，直接跳过下面的业务handler
+//					pipeline.addLast("reconnectHandler", new ReconnectHandler(bootstrap));
 					// 3、业务逻辑处理
 					pipeline.addLast("clientHandler", clientHandler);
 				}
