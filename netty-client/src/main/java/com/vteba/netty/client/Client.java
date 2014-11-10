@@ -51,9 +51,8 @@ public class Client {
 		try {
 			bootstrap(eventLoopGroup);
 		} catch (Exception e) {
-			connected.set(false);
 			LOGGER.error("Netty Client启动异常，将重新启动。", e);
-			if (!connected.get()) {
+			if (!connected.getAndSet(false)) {
 				clientHandler.getScheduler().scheduleAtFixedRate(new Runnable() {
 					
 					@Override
