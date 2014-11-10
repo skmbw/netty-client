@@ -9,6 +9,11 @@ import org.springframework.util.Log4jConfigurer;
 
 import com.vteba.netty.client.Client;
 
+/**
+ * 启动客户端
+ * @author yinlei
+ * @since 2014-6-22
+ */
 public class StartClient {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(Client.class);

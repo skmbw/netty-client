@@ -7,6 +7,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -27,6 +29,7 @@ import com.alibaba.fastjson.JSON;
 @Sharable
 public class ClientHandler extends ChannelInboundHandlerAdapter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ClientHandler.class);
+	private ScheduledExecutorService scheduler;
 	
 	@Inject
 	private Client client;
@@ -34,7 +37,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		if (!client.isConnected()) {
-			Client.scheduler.scheduleAtFixedRate(new Runnable() {
+			getScheduler().scheduleAtFixedRate(new Runnable() {
 				
 				@Override
 				public void run() {
@@ -46,7 +49,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
-		client.setConnected(true);
+//		client.setConnected(true);
 		String msg = "{\"name\":\"yinlei尹雷\"}";
 		ctx.write(msg);
 		//ctx.write(readFile());
@@ -88,6 +91,20 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 		client.setConnected(false);
 		LOGGER.error("发生异常信息，", cause.getMessage());
 		ctx.close();// 发生异常，关闭链接
+	}
+
+	public ScheduledExecutorService getScheduler() {
+		if (scheduler == null) {
+			scheduler = Executors.newScheduledThreadPool(1);
+		}
+		return scheduler;
+	}
+
+	public void shutdown() {
+		if (scheduler != null) {
+			scheduler.shutdown();
+			scheduler = null;
+		}
 	}
 
 }

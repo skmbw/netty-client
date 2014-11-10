@@ -18,8 +18,6 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -40,8 +38,7 @@ import com.vteba.utils.charstr.Char;
 @Named
 public class Client {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Client.class);
-	public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-	public volatile AtomicBoolean connected = new AtomicBoolean(false);
+	private volatile AtomicBoolean connected = new AtomicBoolean(false);
 	private volatile Channel channel;
 	private volatile Bootstrap bootstrap;
 	
@@ -50,22 +47,20 @@ public class Client {
 	
 	public void start() {
 		LOGGER.info("Netty Client启动。");
-		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();// 监听线程组，分派任务的主管
-		
+		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 		try {
 			bootstrap(eventLoopGroup);
 		} catch (Exception e) {
 			connected.set(false);
 			LOGGER.error("Netty Client启动异常，将重新启动。", e);
-			
 			if (!connected.get()) {
-				scheduler.scheduleAtFixedRate(new Runnable() {
+				clientHandler.getScheduler().scheduleAtFixedRate(new Runnable() {
 					
 					@Override
 					public void run() {
 						start();
 					}
-				}, 1, 15, TimeUnit.SECONDS);
+				}, 1, 10, TimeUnit.SECONDS);
 			}
 		} finally {
 			// 关闭线程池，释放资源
@@ -108,6 +103,8 @@ public class Client {
 		// 连接server
 		ChannelFuture future = bootstrap.connect("127.0.0.1", 8080).sync();
 		connected.set(true);
+		// 连接成功，关闭定时重连的线程池
+		clientHandler.shutdown();
 		
 		this.channel = future.channel();// 如果长连接，持有channel，重用连接
 		
