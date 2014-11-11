@@ -29,7 +29,7 @@ public class StartClient {
 		try {
 			context = new ClassPathXmlApplicationContext(configLocation);
 			Client client = context.getBean(Client.class);
-			client.start();
+			client.start(false);
 		} catch (Exception e) {
 			LOGGER.error("启动Netty Client守护线程出错。", e);
 		} finally {

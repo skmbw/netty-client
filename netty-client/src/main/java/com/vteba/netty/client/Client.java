@@ -5,20 +5,11 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.timeout.IdleStateHandler;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Inject;
@@ -26,9 +17,6 @@ import javax.inject.Named;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.vteba.socket.netty.HeartBeatHandler;
-import com.vteba.utils.charstr.Char;
 
 /**
  * 客户端启动器，发起调用
@@ -39,80 +27,64 @@ import com.vteba.utils.charstr.Char;
 public class Client {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Client.class);
 	private volatile AtomicBoolean connected = new AtomicBoolean(false);
-	private volatile Channel channel;
-	private volatile Bootstrap bootstrap;
+	private Channel channel;// 长连接，持有channel就可以重用已经建立的连接了，使用write发送消息
+	private Bootstrap bootstrap;
 	
 	@Inject
-	private ClientHandler clientHandler;
+	private OfflineReconnectHandler offlineReconnectHandler;
 	
-	public void start() {
-		LOGGER.info("Netty Client启动。");
+	@Inject
+	private ChannelInitializer<SocketChannel> clientChannelInitializer;
+	
+	/**
+	 * 连接netty server
+	 * @param offline 是否掉线重启
+	 */
+	public void start(boolean offline) {
+		LOGGER.info("Netty Client 连接 Server开始。");
 		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 		try {
-			bootstrap(eventLoopGroup);
+			bootstrap(eventLoopGroup, "127.0.0.1", 8080);
 		} catch (Exception e) {
-			LOGGER.error("Netty Client启动异常，将重新启动。", e);
-			if (!connected.getAndSet(false)) {
-				clientHandler.getScheduler().scheduleAtFixedRate(new Runnable() {
-					
-					@Override
-					public void run() {
-						start();
-					}
-				}, 1, 10, TimeUnit.SECONDS);
-			}
+			LOGGER.error("Netty Client 连接 Server 异常，将重新连接。", e);
+//			if (!connected.getAndSet(false)) {
+//				offlineReconnectHandler.getScheduler().scheduleAtFixedRate(new Runnable() {
+//					
+//					@Override
+//					public void run() {
+//						start();
+//					}
+//				}, 1, 10, TimeUnit.SECONDS);
+//			}
 		} finally {
 			// 关闭线程池，释放资源
+			LOGGER.info("Netty Client 连接关闭，释放资源。");
 			eventLoopGroup.shutdownGracefully();
 		}
 	}
 	
-	public void bootstrap(EventLoopGroup eventLoopGroup) throws InterruptedException {
+	public void bootstrap(EventLoopGroup eventLoopGroup, String ip, int port) throws InterruptedException {
 		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(eventLoopGroup)
 			.channel(NioSocketChannel.class)
 			.option(ChannelOption.TCP_NODELAY, true)
-			.handler(new ChannelInitializer<SocketChannel>() {
-
-				@Override
-				protected void initChannel(SocketChannel ch) throws Exception {
-					ChannelPipeline pipeline = ch.pipeline();
-					/**********ChannelOutboundHandler（发送数据，出去）逆序执行**********/
-					// 2、加上头长度
-					pipeline.addLast("lengthPrepender", new LengthFieldPrepender(4));
-					// 1、将字符转字节数组
-					pipeline.addLast("encoder", new StringEncoder(Char.UTF8));
-					
-					pipeline.addLast("logger", new LoggingHandler(LogLevel.WARN));// 既是Inbound又是Outbound
-					pipeline.addLast("ldleStateHandler", new IdleStateHandler(20, 10, 10));//双工的，既是Inbound又是Outbound
-					
-					/**********ChannelInboundHandler（接受数据，进来）顺序执行*************/
-					// 1、获取去掉头长度的字节数组
-					pipeline.addLast("lengthFrameDecoder", new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4));
-					// 2、将数组编码为字符串
-					pipeline.addLast("decoder", new StringDecoder(Char.UTF8));
-					
-					pipeline.addLast("heartBeatHandler", new HeartBeatHandler());// 进行心跳检测，如果是心跳消息，直接跳过下面的业务handler
-//					pipeline.addLast("reconnectHandler", new ReconnectHandler(bootstrap));
-					// 3、业务逻辑处理
-					pipeline.addLast("clientHandler", clientHandler);
-				}
-			});
+			.handler(clientChannelInitializer);
 		
 		this.bootstrap = bootstrap;// 引导程序的配置启动器
 		// 连接server
-		ChannelFuture future = bootstrap.connect("127.0.0.1", 8080).sync();
+		ChannelFuture future = bootstrap.connect(ip, port).sync();
 		connected.set(true);
 		// 连接成功，关闭定时重连的线程池
-		clientHandler.shutdown();
+		offlineReconnectHandler.shutdown();
 		
 		this.channel = future.channel();// 如果长连接，持有channel，重用连接
-		
-		for (int i = 0; i < 2; i++) {
-			TimeUnit.SECONDS.sleep(4);
-			// 持有channel就可以重用已经建立的连接了
-			this.channel.write("尹雷等一段时间在发送的" + i);// 相当于在handler中的channelActive发送消息
-		}
+		LOGGER.info("Netty Client 连接 Server[{}:{}] 成功。", ip, port);
+//		
+//		for (int i = 0; i < 2; i++) {
+//			TimeUnit.SECONDS.sleep(4);
+//			// 持有channel就可以重用已经建立的连接了
+//			this.channel.write("尹雷等一段时间在发送的" + i);// 相当于在handler中的channelActive发送消息
+//		}
 		// 等待直到链接被关闭
 		this.channel.closeFuture().sync();
 	}

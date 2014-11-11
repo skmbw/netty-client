@@ -7,12 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.commons.io.IOUtils;
@@ -30,28 +25,28 @@ import com.alibaba.fastjson.JSON;
 @Sharable
 public class ClientHandler extends ChannelInboundHandlerAdapter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ClientHandler.class);
-	private ScheduledExecutorService scheduler;
-	private volatile AtomicBoolean started = new AtomicBoolean(false);// 是否启动定时，假如有多个连接断掉了，可能会开启多个
-	@Inject
-	private Client client;
+//	private ScheduledExecutorService scheduler;
+//	private volatile AtomicBoolean started = new AtomicBoolean(false);// 是否启动定时，假如有多个连接断掉了，可能会开启多个
+//	@Inject
+//	private Client client;
 	
-	@Override
-	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-		if (!client.isConnected() && !started.getAndSet(true)) {
-			getScheduler().scheduleAtFixedRate(new Runnable() {
-				
-				@Override
-				public void run() {
-					client.start();
-				}
-			}, 1, 15, TimeUnit.SECONDS);
-		}
-	}
+//	@Override
+//	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+//		if (!client.isConnected() && !started.getAndSet(true)) {
+//			getScheduler().scheduleAtFixedRate(new Runnable() {
+//				
+//				@Override
+//				public void run() {
+//					client.start();
+//				}
+//			}, 1, 15, TimeUnit.SECONDS);
+//		}
+//	}
 
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 //		client.setConnected(true);
-		started.set(false);
+//		started.set(false);
 		String msg = "{\"name\":\"yinlei尹雷\"}";
 		ctx.write(msg);
 		//ctx.write(readFile());
@@ -90,23 +85,23 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
 			throws Exception {
-		client.setConnected(false);
+//		client.setConnected(false);
 		LOGGER.error("发生异常信息，", cause.getMessage());
 		ctx.close();// 发生异常，关闭链接
 	}
 
-	public ScheduledExecutorService getScheduler() {
-		if (scheduler == null) {
-			scheduler = Executors.newScheduledThreadPool(1);
-		}
-		return scheduler;
-	}
+//	public ScheduledExecutorService getScheduler() {
+//		if (scheduler == null) {
+//			scheduler = Executors.newScheduledThreadPool(1);
+//		}
+//		return scheduler;
+//	}
 
-	public void shutdown() {
-		if (scheduler != null) {
-			scheduler.shutdown();
-			scheduler = null;
-		}
-	}
+//	public void shutdown() {
+//		if (scheduler != null) {
+//			scheduler.shutdown();
+//			scheduler = null;
+//		}
+//	}
 
 }
