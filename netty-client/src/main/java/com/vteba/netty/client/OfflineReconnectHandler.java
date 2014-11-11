@@ -52,6 +52,7 @@ public class OfflineReconnectHandler extends ChannelInboundHandlerAdapter {
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
 		started.set(false);// 断线重连成功，设置为不再重连
 		ctx.write(HeartBeatHandler.PING);// 发送ping消息给Server
+		ctx.fireChannelActive();// 向下传递事件
 	}
 	
 	@Override
