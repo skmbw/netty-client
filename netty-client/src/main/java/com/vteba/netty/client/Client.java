@@ -46,7 +46,7 @@ public class Client {
 		String ip = PropUtils.get("netty.server.ip");
 		int port = PropUtils.getInt("netty.server.port");
 		
-		LOGGER.info("Netty Client 连接 Server开始。");
+		LOGGER.info(offline ? "Netty Client和Server连接断开，重新连接。" : "Netty Client 连接 Server开始。");
 		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 		try {
 			final Bootstrap bootstrap = new Bootstrap();
@@ -63,12 +63,12 @@ public class Client {
 			offlineReconnectHandler.shutdown();
 			
 			this.channel = future.channel();// 如果长连接，持有channel，重用连接
-			LOGGER.info("Netty Client 连接 Server[{}:{}] 成功。", ip, port);
+			LOGGER.info("Netty Client" + (offline ? "和Server连接断开，重连" : "连接Server") + "[{}:{}]成功。", ip, port);
 			
 			// 等待直到链接被关闭
 			this.channel.closeFuture().sync();
 		} catch (Exception e) {
-			LOGGER.error("Netty Client 连接 Server 异常，将重新连接。", e);
+			LOGGER.error("Netty Client " + (offline ? "和Server重连异常，将再次尝试。" : "连接 Server 异常，将重新连接。"), e);
 		} finally {
 			// 关闭线程池，释放资源
 			LOGGER.info("Netty Client 连接关闭，释放资源。");
