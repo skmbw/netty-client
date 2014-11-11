@@ -18,6 +18,8 @@ import javax.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vteba.utils.common.PropUtils;
+
 /**
  * 客户端启动器，发起调用
  * @author yinlei
@@ -41,21 +43,32 @@ public class Client {
 	 * @param offline 是否掉线重启
 	 */
 	public void start(boolean offline) {
+		String ip = PropUtils.get("netty.server.ip");
+		int port = PropUtils.getInt("netty.server.port");
+		
 		LOGGER.info("Netty Client 连接 Server开始。");
 		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 		try {
-			bootstrap(eventLoopGroup, "127.0.0.1", 8080);
+			final Bootstrap bootstrap = new Bootstrap();
+			bootstrap.group(eventLoopGroup)
+				.channel(NioSocketChannel.class)
+				.option(ChannelOption.TCP_NODELAY, true)
+				.handler(clientChannelInitializer);
+			
+			this.bootstrap = bootstrap;// 引导程序的配置启动器
+			// 连接server
+			ChannelFuture future = bootstrap.connect(ip, port).sync();
+			connected.set(true);
+			// 连接成功，关闭定时重连的线程池
+			offlineReconnectHandler.shutdown();
+			
+			this.channel = future.channel();// 如果长连接，持有channel，重用连接
+			LOGGER.info("Netty Client 连接 Server[{}:{}] 成功。", ip, port);
+			
+			// 等待直到链接被关闭
+			this.channel.closeFuture().sync();
 		} catch (Exception e) {
 			LOGGER.error("Netty Client 连接 Server 异常，将重新连接。", e);
-//			if (!connected.getAndSet(false)) {
-//				offlineReconnectHandler.getScheduler().scheduleAtFixedRate(new Runnable() {
-//					
-//					@Override
-//					public void run() {
-//						start();
-//					}
-//				}, 1, 10, TimeUnit.SECONDS);
-//			}
 		} finally {
 			// 关闭线程池，释放资源
 			LOGGER.info("Netty Client 连接关闭，释放资源。");
@@ -63,6 +76,7 @@ public class Client {
 		}
 	}
 	
+	@Deprecated
 	public void bootstrap(EventLoopGroup eventLoopGroup, String ip, int port) throws InterruptedException {
 		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(eventLoopGroup)
