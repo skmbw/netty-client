@@ -40,7 +40,7 @@ public class ClientChannelInitializer extends ChannelInitializer<SocketChannel> 
 		// 1、将字符转字节数组
 		pipeline.addLast("encoder", new StringEncoder(Char.UTF8));
 		
-		pipeline.addLast("logger", new LoggingHandler(LogLevel.WARN));// 既是Inbound又是Outbound
+		pipeline.addLast("logger", new LoggingHandler(LogLevel.INFO));// 既是Inbound又是Outbound
 		pipeline.addLast("ldleStateHandler", new IdleStateHandler(20, 10, 10));//双工的，既是Inbound又是Outbound
 		
 		/**********ChannelInboundHandler（接受数据，进来）顺序执行*************/

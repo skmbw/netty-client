@@ -86,11 +86,10 @@
     <logger name="org.springframework.orm" additivity="true">
         <level value="INFO"/>
     </logger>
-    <!-- 
-    <logger name="com.atomikos" additivity="true">
-        <level value="WARN"/>
-        <appender-ref ref="console"/>
-    </logger> -->
+    
+    <logger name="io.netty" additivity="true">
+        <level value="INFO"/>
+    </logger>
     <logger name="bitronix.tm" additivity="true">
         <level value="INFO"/>
     </logger>
