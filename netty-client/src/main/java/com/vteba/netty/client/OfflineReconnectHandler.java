@@ -23,7 +23,7 @@ import com.vteba.socket.netty.HeartBeatHandler;
  * @since 2014-6-22
  */
 @Named
-@Sharable
+@Sharable// 语义性检查，不保证线程安全。要自己确认该handler是无状态的，可以共享的，无线程并发问题
 public class OfflineReconnectHandler extends ChannelInboundHandlerAdapter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(OfflineReconnectHandler.class);
 	private ScheduledExecutorService scheduler;
