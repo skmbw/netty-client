@@ -63,7 +63,7 @@ public class OfflineReconnectHandler extends ChannelInboundHandlerAdapter {
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
 			throws Exception {
 		client.setConnected(false);
-		LOGGER.error("发生异常信息，", cause.getMessage());
+		LOGGER.error("发生异常信息，client和server连接断开，将重连。", cause.getMessage());
 		ctx.close();// 发生异常，关闭链接
 	}
 
