@@ -1,4 +1,4 @@
-package com.vteba.netty.client;
+package com.vteba.protobuf.client;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
