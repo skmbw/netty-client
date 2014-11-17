@@ -1,4 +1,4 @@
-package com.vteba.netty.protobuf;
+package com.vteba.netty.protostuff;
 
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -8,8 +8,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vteba.protobuf.AddressBookProtos.AddressBook;
-import com.vteba.protobuf.AddressBookProtos.MessageType;
+import com.vteba.utils.json.Node;
 
 /**
  * 心跳处理器。客户端和服务端都需要配置一个心跳处理器。
@@ -27,26 +26,15 @@ public class HeartBeatHandler extends ChannelDuplexHandler {
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg)
 			throws Exception {
-		if (msg instanceof String) {
-			String heart = (String) msg;
-			if (heart.equals(PING)) {// Server接收到Client的心跳ping消息
-				ctx.write(PONG);
-			} else if (heart.equals(PONG)) {// Client接收到Server的心跳pong消息
-				// pong消息不处理，等待Netty核心的事件通知，空闲时才发送ping消息，减少负载
-			} else {
-				super.channelRead(ctx, msg);// 不是心跳信息，向下传递消息，给下面的handler处理
-			}
+		Node heart = (Node) msg;
+		if (heart.getName().equals(PING)) {// Server接收到Client的心跳ping消息
+			Node node = new Node();
+			node.setName(PONG);
+			ctx.write(node);
+		} else if (heart.getName().equals(PONG)) {// Client接收到Server的心跳pong消息
+			// pong消息不处理，等待Netty核心的事件通知，空闲时才发送ping消息，减少负载
 		} else {
-			AddressBook addressBook = (AddressBook) msg;
-			if (addressBook.getType() == MessageType.PING) {
-				AddressBook.Builder builder = AddressBook.newBuilder();
-				builder.setType(MessageType.PONG);
-				ctx.write(builder.build());
-			} else if (addressBook.getType() == MessageType.PONG) {
-				
-			} else {
-				super.channelRead(ctx, msg);
-			}
+			super.channelRead(ctx, msg);// 不是心跳信息，向下传递消息，给下面的handler处理
 		}
 	}
 
@@ -58,9 +46,9 @@ public class HeartBeatHandler extends ChannelDuplexHandler {
 			if (event.state() == IdleState.READER_IDLE) {
 				ctx.close();// 读超时关闭
 			} else if (event.state() == IdleState.ALL_IDLE) {
-				AddressBook.Builder builder = AddressBook.newBuilder();
-				builder.setType(MessageType.PING);
-				ctx.write(builder.build());
+				Node node = new Node();
+				node.setName(PING);
+				ctx.write(node);
 				ctx.flush();
 			}
 		}
