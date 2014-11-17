@@ -15,7 +15,7 @@ import javax.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vteba.socket.netty.HeartBeatHandler;
+import com.vteba.netty.handler.HeartBeatHandler;
 
 /**
  * 掉线重连处理器

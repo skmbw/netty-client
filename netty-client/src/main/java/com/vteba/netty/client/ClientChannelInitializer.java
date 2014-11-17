@@ -3,7 +3,7 @@ package com.vteba.netty.client;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.vteba.socket.netty.HeartBeatHandler;
+import com.vteba.netty.handler.HeartBeatHandler;
 import com.vteba.utils.charstr.Char;
 
 import io.netty.channel.ChannelInitializer;
