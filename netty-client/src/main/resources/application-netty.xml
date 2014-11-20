@@ -12,7 +12,7 @@
 	<!-- auto wire bean -->
 	<context:annotation-config/>
 	<!-- auto scan bean base package , 可以有多个值，以逗号分开-->
-	<context:component-scan base-package="com.vteba"/>
+	<context:component-scan base-package="com.vteba.netty.client"/>
 
 	<bean id="propertyConfigurer" class="com.vteba.utils.common.PropUtils">
 		<property name="locations">
